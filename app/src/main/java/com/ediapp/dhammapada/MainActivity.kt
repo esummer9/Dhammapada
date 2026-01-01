@@ -8,7 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -41,14 +43,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.ediapp.dhammapada.ui.home.HomeFragment
 import com.ediapp.dhammapada.ui.lists.ListFragment
 import com.ediapp.dhammapada.ui.settings.SettingsFragment
 import com.ediapp.dhammapada.ui.theme.MyKeywordTheme
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        MobileAds.initialize(this)
 
         val sharedPref = getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
@@ -94,6 +103,8 @@ fun MyKeywordApp() {
 
     var menuExpanded by remember { mutableStateOf(false) }
     var refreshHomeTrigger by remember { mutableIntStateOf(0) }
+    var homeFragmentActions by remember { mutableStateOf<(@Composable RowScope.() -> Unit)?>(null) }
+
 
     ModalNavigationDrawer(
         drawerContent = {},
@@ -120,7 +131,12 @@ fun MyKeywordApp() {
                         },
                         label = { Text(it.label) },
                         selected = it == currentDestination,
-                        onClick = { currentDestination = it }
+                        onClick = { 
+                            currentDestination = it 
+                            if (it != AppDestinations.HOME) {
+                                homeFragmentActions = null
+                            }
+                        }
                     )
                 }
             }
@@ -171,21 +187,38 @@ fun MyKeywordApp() {
                                     IconButton(onClick = { refreshHomeTrigger++ }) {
                                         Icon(painterResource(id = R.drawable.arrowhead), contentDescription = "Next", tint = Color.Unspecified)
                                     }
+                                    homeFragmentActions?.let { it() }
                                 }
                             }
                         )
                         Divider(color = Color.Gray, thickness = 1.dp)
                     }
-                }
-            ) { scaffoldPadding ->
-                Box(modifier = Modifier.padding(scaffoldPadding)) {
-                    when (currentDestination) {
-                        AppDestinations.HOME -> HomeFragment(refreshTrigger = refreshHomeTrigger)
-                        AppDestinations.MEMO -> ListFragment()
-                        AppDestinations.KEYWORD -> SettingsFragment()
+                },
+                content = { scaffoldPadding ->
+                    Column(Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.weight(1f).padding(scaffoldPadding)) {
+                            when (currentDestination) {
+                                AppDestinations.HOME -> HomeFragment(
+                                    refreshTrigger = refreshHomeTrigger,
+                                    setActions = { homeFragmentActions = it }
+                                )
+                                AppDestinations.MEMO -> ListFragment()
+                                AppDestinations.KEYWORD -> SettingsFragment()
+                            }
+                        }
+                        AndroidView(
+                            modifier = Modifier.fillMaxWidth(),
+                            factory = { context ->
+                                AdView(context).apply {
+                                    setAdSize(AdSize.BANNER)
+                                    adUnitId = "ca-app-pub-9901915016619662/1755707787" // Test Ad Unit ID
+                                    loadAd(AdRequest.Builder().build())
+                                }
+                            }
+                        )
                     }
                 }
-            }
+            )
         }
     }
 }

@@ -1,14 +1,24 @@
 package com.ediapp.dhammapada.ui.home
 
+import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.os.Build
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,11 +27,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -29,14 +43,24 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.ediapp.dhammapada.DatabaseHelper
 import com.ediapp.dhammapada.R
 import com.ediapp.dhammapada.data.DhammapadaItem
+import kotlinx.coroutines.launch
+import java.io.IOException
+import java.io.OutputStream
 
 @Composable
-fun HomeFragment(modifier: Modifier = Modifier, refreshTrigger: Int) {
+fun HomeFragment(
+    modifier: Modifier = Modifier, 
+    refreshTrigger: Int, 
+    setActions: (@Composable RowScope.() -> Unit) -> Unit
+) {
     val context = LocalContext.current
     val dbHelper = remember { DatabaseHelper(context) }
     val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
     var item by remember { mutableStateOf<DhammapadaItem?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+
+    val coroutineScope = rememberCoroutineScope()
+    val view = LocalView.current
 
     val buddaImageIds = remember {
         listOf(
@@ -47,8 +71,10 @@ fun HomeFragment(modifier: Modifier = Modifier, refreshTrigger: Int) {
             R.drawable.budda_buddhism_882879_1280,
             R.drawable.budda_lotuses_4880755_1280,
             R.drawable.budda_buddhism_5220871_1280,
-            R.drawable.budda_songnisan_5309158_1280,
-            R.drawable.budda_buddhism_5220871_1280,
+            R.drawable.budda_img_20250101_122112300,
+            R.drawable.buddda_img_0538,
+            R.drawable.budda_img_20250101_121911767,
+            R.drawable.budda_bulguksa_1604599_1280,
         )
     }
     var imageResId by remember { mutableStateOf(buddaImageIds.random()) }
@@ -65,9 +91,25 @@ fun HomeFragment(modifier: Modifier = Modifier, refreshTrigger: Int) {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+    
+    LaunchedEffect(item, isLoading) {
+        setActions {
+            IconButton(onClick = { 
+                coroutineScope.launch {
+                    val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bitmap)
+                    view.draw(canvas)
+                    saveBitmapToGallery(context, bitmap, "Dhammapada_Verse")
+                }
+            }, enabled = !isLoading && item != null) {
+                Icon(painterResource(id = R.drawable.picture),tint = Color.Unspecified,
+                     modifier = Modifier.width(30.dp), contentDescription = "저장"
+                )
+            }
+        }
+    }
 
     LaunchedEffect(refreshTrigger) {
-        // Only randomize image on user-triggered refresh, not on initial composition.
         if (refreshTrigger > 0) {
             imageResId = buddaImageIds.random()
         }
@@ -75,7 +117,7 @@ fun HomeFragment(modifier: Modifier = Modifier, refreshTrigger: Int) {
         val readIndex = sharedPref.getInt("read_index", 0)
         var nextItem = dbHelper.getNextItem(readIndex)
 
-        if (nextItem == null) { // If we're at the end, loop back to the start.
+        if (nextItem == null) {
             nextItem = dbHelper.getNextItem(0)
         }
 
@@ -101,8 +143,10 @@ fun HomeFragment(modifier: Modifier = Modifier, refreshTrigger: Int) {
         Image(
             painter = painterResource(id = imageResId),
             contentDescription = "Budda Image",
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = 350.dp)
                 .padding(16.dp)
         )
 
@@ -123,5 +167,41 @@ fun HomeFragment(modifier: Modifier = Modifier, refreshTrigger: Int) {
         } else {
             Text("표시할 구절이 없습니다.", modifier = Modifier.padding(16.dp))
         }
+    }
+}
+
+private fun saveBitmapToGallery(context: Context, bitmap: Bitmap, displayName: String) {
+    val values = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, "${displayName}_${System.currentTimeMillis()}.png")
+        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Dhammapada")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+    }
+
+    val resolver = context.contentResolver
+    var uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+    try {
+        uri?.let {
+            val stream: OutputStream? = resolver.openOutputStream(it)
+            stream?.use { 
+                if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) {
+                    throw IOException("Failed to save bitmap.")
+                }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                resolver.update(it, values, null, null)
+            }
+            Toast.makeText(context, "이미지가 갤러리에 저장되었습니다.", Toast.LENGTH_SHORT).show()
+        } ?: throw IOException("Failed to create new MediaStore record.")
+    } catch (e: IOException) {
+        uri?.let { resolver.delete(it, null, null) }
+        Toast.makeText(context, "이미지 저장에 실패했습니다.", Toast.LENGTH_SHORT).show()
+        e.printStackTrace()
     }
 }

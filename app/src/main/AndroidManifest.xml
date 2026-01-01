@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
@@ -17,6 +19,11 @@
         android:roundIcon="@drawable/logo"
         android:supportsRtl="true"
         android.theme="@style/Theme.MyKeyword">
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-9901915016619662~7640435766"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
