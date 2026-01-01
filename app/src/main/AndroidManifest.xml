@@ -3,8 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <queries>
         <intent>
@@ -13,6 +11,7 @@
     </queries>
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -24,7 +23,7 @@
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-9901915016619662~7640435766"/>
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
 
         <activity
             android:name=".MainActivity"
@@ -47,6 +46,10 @@
         <activity
             android:name=".OpenSourceActivity"
             android:label="오픈소스"
+            android:theme="@style/Theme.MyKeyword" />
+        <activity
+            android:name=".DetailActivity"
+            android:label="상세보기"
             android:theme="@style/Theme.MyKeyword" />
     </application>
 

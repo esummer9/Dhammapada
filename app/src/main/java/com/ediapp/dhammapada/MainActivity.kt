@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Divider
@@ -185,7 +186,9 @@ fun MyKeywordApp() {
                             actions = {
                                 if (currentDestination == AppDestinations.HOME) {
                                     IconButton(onClick = { refreshHomeTrigger++ }) {
-                                        Icon(painterResource(id = R.drawable.arrowhead), contentDescription = "Next", tint = Color.Unspecified)
+                                        Icon(painterResource(id = R.drawable.arrowhead),
+                                            modifier = Modifier.width(30.dp),
+                                            contentDescription = "Next", tint = Color.Unspecified)
                                     }
                                     homeFragmentActions?.let { it() }
                                 }

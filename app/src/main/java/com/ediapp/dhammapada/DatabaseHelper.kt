@@ -2,6 +2,7 @@ package com.ediapp.dhammapada
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.ediapp.dhammapada.data.DhammapadaItem
@@ -56,6 +57,22 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         }
     }
 
+    private fun cursorToItem(cursor: Cursor): DhammapadaItem {
+        return DhammapadaItem(
+            id = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_ID)),
+            category = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CATEGORY)),
+            title = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_TITLE)),
+            content = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CONTENT)),
+            createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_TIMESTAMP)),
+            regDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_REG_DATE)),
+            writeDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_WRITE_DATE)),
+            url = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_URL)),
+            readCount = cursor.getInt(cursor.getColumnIndexOrThrow(LISTS_COL_READ_COUNT)),
+            readTime = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_READ_TIME)),
+            status = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_STATUS))
+        )
+    }
+
     fun insertInitialData(context: Context) {
         val db = this.writableDatabase
         db.beginTransaction()
@@ -92,32 +109,56 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val cursor = db.rawQuery("SELECT * FROM $TABLE_LISTS WHERE $LISTS_COL_ID > ? ORDER BY $LISTS_COL_ID ASC LIMIT 1", arrayOf(readIndex.toString()))
         var item: DhammapadaItem? = null
         if (cursor.moveToFirst()) {
-            item = DhammapadaItem(
-                id = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_ID)),
-                category = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CATEGORY)),
-                title = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_TITLE)),
-                content = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CONTENT)),
-                createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_TIMESTAMP)),
-                regDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_REG_DATE)),
-                writeDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_WRITE_DATE)),
-                url = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_URL)),
-                readCount = cursor.getInt(cursor.getColumnIndexOrThrow(LISTS_COL_READ_COUNT)),
-                readTime = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_READ_TIME)),
-                status = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_STATUS))
-            )
+            item = cursorToItem(cursor)
+        }
+        cursor.close()
+        return item
+    }
+    
+    fun getPreviousItem(id: Long): DhammapadaItem? {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_LISTS WHERE $LISTS_COL_ID < ? ORDER BY $LISTS_COL_ID DESC LIMIT 1", arrayOf(id.toString()))
+        var item: DhammapadaItem? = null
+        if (cursor.moveToFirst()) {
+            item = cursorToItem(cursor)
         }
         cursor.close()
         return item
     }
 
-    fun updateReadStatus(id: Long?) {
-        val db = this.writableDatabase
-        val values = ContentValues().apply {
-            put(LISTS_COL_READ_TIME, System.currentTimeMillis())
+    fun getLastItem(): DhammapadaItem? {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_LISTS ORDER BY $LISTS_COL_ID DESC LIMIT 1", null)
+        var item: DhammapadaItem? = null
+        if (cursor.moveToFirst()) {
+            item = cursorToItem(cursor)
         }
+        cursor.close()
+        return item
+    }
+
+    fun getItemById(id: Long): DhammapadaItem? {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_LISTS WHERE $LISTS_COL_ID = ?", arrayOf(id.toString()))
+        var item: DhammapadaItem? = null
+        if (cursor.moveToFirst()) {
+            item = cursorToItem(cursor)
+        }
+        cursor.close()
+        return item
+    }
+
+    fun updateReadStatus(id: Long) {
+        val db = this.writableDatabase
         db.execSQL("UPDATE $TABLE_LISTS SET $LISTS_COL_READ_COUNT = $LISTS_COL_READ_COUNT + 1, $LISTS_COL_READ_TIME = ? WHERE $LISTS_COL_ID = ?", arrayOf(System.currentTimeMillis().toString(), id.toString()))
     }
 
+    fun updateWriteDate(id: Long) {
+        val db = this.writableDatabase
+        val values = ContentValues()
+        values.put(LISTS_COL_WRITE_DATE, System.currentTimeMillis())
+        db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ? and $LISTS_COL_WRITE_DATE = 0", arrayOf(id.toString()))
+    }
 
     fun getAllLists(): List<DhammapadaItem> {
         val items = mutableListOf<DhammapadaItem>()
@@ -126,20 +167,31 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         if (cursor.moveToFirst()) {
             do {
-                val item = DhammapadaItem(
-                    id = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_ID)),
-                    category = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CATEGORY)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_TITLE)),
-                    content = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CONTENT)),
-                    createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_TIMESTAMP)),
-                    regDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_REG_DATE)),
-                    writeDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_WRITE_DATE)),
-                    url = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_URL)),
-                    readCount = cursor.getInt(cursor.getColumnIndexOrThrow(LISTS_COL_READ_COUNT)),
-                    readTime = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_READ_TIME)),
-                    status = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_STATUS))
-                )
-                items.add(item)
+                items.add(cursorToItem(cursor))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return items
+    }
+
+    fun searchLists(query: String): List<DhammapadaItem> {
+        val items = mutableListOf<DhammapadaItem>()
+        val db = this.readableDatabase
+        val selection = "$LISTS_COL_TITLE LIKE ? OR $LISTS_COL_CONTENT LIKE ?"
+        val selectionArgs = arrayOf("%$query%", "%$query%")
+        val cursor = db.query(
+            TABLE_LISTS,
+            null, // all columns
+            selection,
+            selectionArgs,
+            null,
+            null,
+            LISTS_COL_ID // order by
+        )
+
+        if (cursor.moveToFirst()) {
+            do {
+                items.add(cursorToItem(cursor))
             } while (cursor.moveToNext())
         }
         cursor.close()
