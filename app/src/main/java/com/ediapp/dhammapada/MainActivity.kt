@@ -1,3 +1,4 @@
+
 package com.ediapp.dhammapada
 
 import android.content.Context
@@ -209,16 +210,18 @@ fun MyKeywordApp() {
                                 AppDestinations.KEYWORD -> SettingsFragment()
                             }
                         }
-                        AndroidView(
-                            modifier = Modifier.fillMaxWidth(),
-                            factory = { context ->
-                                AdView(context).apply {
-                                    setAdSize(AdSize.BANNER)
-                                    adUnitId = "ca-app-pub-9901915016619662/1755707787" // Test Ad Unit ID
-                                    loadAd(AdRequest.Builder().build())
+                        if (currentDestination != AppDestinations.HOME) {
+                            AndroidView(
+                                modifier = Modifier.fillMaxWidth(),
+                                factory = { context ->
+                                    AdView(context).apply {
+                                        setAdSize(AdSize.BANNER)
+                                        adUnitId = "ca-app-pub-9901915016619662/1755707787" // Test Ad Unit ID
+                                        loadAd(AdRequest.Builder().build())
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             )
