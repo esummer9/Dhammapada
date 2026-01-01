@@ -1,5 +1,6 @@
 package com.ediapp.dhammapada
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -27,6 +28,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -39,14 +41,39 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import com.ediapp.dhammapada.ui.favorites.MemoFragment
 import com.ediapp.dhammapada.ui.home.HomeFragment
-import com.ediapp.dhammapada.ui.profile.KeywordFragment
+import com.ediapp.dhammapada.ui.lists.ListFragment
+import com.ediapp.dhammapada.ui.settings.SettingsFragment
 import com.ediapp.dhammapada.ui.theme.MyKeywordTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val sharedPref = getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        var needsApply = false
+
+        if (!sharedPref.getBoolean("data_inserted", false)) {
+            val dbHelper = DatabaseHelper(this)
+            dbHelper.insertInitialData(this)
+            editor.putBoolean("data_inserted", true)
+            needsApply = true
+        }
+
+        if (!sharedPref.contains("install_time")) {
+            editor.putLong("install_time", System.currentTimeMillis())
+            needsApply = true
+        }
+        if (!sharedPref.contains("read_index")) {
+            editor.putInt("read_index", 0)
+            needsApply = true
+        }
+
+        if (needsApply) {
+            editor.apply()
+        }
+
         enableEdgeToEdge()
         setContent {
             MyKeywordTheme {
@@ -66,11 +93,10 @@ fun MyKeywordApp() {
     val context = LocalContext.current
 
     var menuExpanded by remember { mutableStateOf(false) }
+    var refreshHomeTrigger by remember { mutableIntStateOf(0) }
 
     ModalNavigationDrawer(
-        drawerContent = {
-
-        },
+        drawerContent = {},
         drawerState = drawerState
     ) {
         NavigationSuiteScaffold(
@@ -104,7 +130,7 @@ fun MyKeywordApp() {
                 topBar = {
                     Column {
                         TopAppBar(
-                            title = { Text(text = "K-유틸리티") },
+                            title = { Text(text = "내손안의 법구경") },
                             navigationIcon = {
                                 Box {
                                     IconButton(onClick = { menuExpanded = true }) {
@@ -133,14 +159,17 @@ fun MyKeywordApp() {
                                         DropdownMenuItem(
                                             text = { Text("오픈소스") },
                                             onClick = {
-                                                context.startActivity(Intent(context,
-                                                    OpenSourceActivity::class.java))
+                                                context.startActivity(Intent(context, OpenSourceActivity::class.java))
                                                 menuExpanded = false
                                             }
                                         )
-
-
-
+                                    }
+                                }
+                            },
+                            actions = {
+                                if (currentDestination == AppDestinations.HOME) {
+                                    IconButton(onClick = { refreshHomeTrigger++ }) {
+                                        Icon(painterResource(id = R.drawable.arrowhead), contentDescription = "Next", tint = Color.Unspecified)
                                     }
                                 }
                             }
@@ -151,9 +180,9 @@ fun MyKeywordApp() {
             ) { scaffoldPadding ->
                 Box(modifier = Modifier.padding(scaffoldPadding)) {
                     when (currentDestination) {
-                        AppDestinations.HOME -> HomeFragment()
-                        AppDestinations.MEMO -> MemoFragment()
-                        AppDestinations.KEYWORD -> KeywordFragment()
+                        AppDestinations.HOME -> HomeFragment(refreshTrigger = refreshHomeTrigger)
+                        AppDestinations.MEMO -> ListFragment()
+                        AppDestinations.KEYWORD -> SettingsFragment()
                     }
                 }
             }
@@ -166,7 +195,7 @@ enum class AppDestinations(
     val label: String,
     val icon: Any,
 ) {
-    HOME("Home", R.drawable.home),
-    MEMO("Memo", R.drawable.memo),
-    KEYWORD("Keyword", R.drawable.keyword),
+    HOME("Home", R.drawable.logo),
+    MEMO("Lists", R.drawable.memo),
+    KEYWORD("Settings", R.drawable.settings),
 }
