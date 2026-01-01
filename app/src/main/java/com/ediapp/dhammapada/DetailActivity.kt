@@ -77,7 +77,7 @@ fun DetailScreen(itemId: Long) {
     DisposableEffect(Unit) {
         onDispose {
             if (item != null && isThresholdMet) {
-                dbHelper.updateWriteDate(item!!.id)
+                dbHelper.updateWriteDate(item!!.id) 
             }
         }
     }

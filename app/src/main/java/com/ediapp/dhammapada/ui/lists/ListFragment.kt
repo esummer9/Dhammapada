@@ -4,6 +4,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,10 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -26,11 +29,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -47,6 +52,7 @@ fun ListFragment(modifier: Modifier = Modifier) {
     val dbHelper = remember { DatabaseHelper(context) }
     var itemList by remember { mutableStateOf(emptyList<DhammapadaItem>()) }
     var searchQuery by remember { mutableStateOf("") }
+    var filterOption by remember { mutableStateOf("사경무") }
     var refreshKey by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -62,13 +68,19 @@ fun ListFragment(modifier: Modifier = Modifier) {
         }
     }
 
-    LaunchedEffect(searchQuery, refreshKey) {
-        Log.d("ListFragment", "searchQuery: $searchQuery, refreshKey: $refreshKey")
+    LaunchedEffect(searchQuery, refreshKey, filterOption) {
+        Log.d("ListFragment", "searchQuery: $searchQuery, refreshKey: $refreshKey, filterOption: $filterOption")
 
-        itemList = if (searchQuery.isBlank()) {
+        val allItems = if (searchQuery.isBlank()) {
             dbHelper.getAllLists()
         } else {
             dbHelper.searchLists(searchQuery)
+        }
+
+        itemList = when (filterOption) {
+            "사경" -> allItems.filter { it.writeDate > 0 }
+            "사경무" -> allItems.filter { it.writeDate <= 0 }
+            else -> allItems // "전체"
         }
     }
 
@@ -82,13 +94,45 @@ fun ListFragment(modifier: Modifier = Modifier) {
                 .padding(16.dp)
         )
 
+        val radioOptions = listOf("사경무", "사경", "전체")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            radioOptions.forEach { option ->
+                Row(
+                    Modifier
+                        .selectable(
+                            selected = (option == filterOption),
+                            onClick = { filterOption = option },
+                            role = Role.RadioButton
+                        )
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (option == filterOption),
+                        onClick = null // Recommended for accessibility
+                    )
+                    Text(
+                        text = option,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+            }
+        }
+
         LazyColumn {
-            items(itemList) {
-                item -> ListItem(item = item, onClick = {
-                val intent = Intent(context, DetailActivity::class.java)
-                intent.putExtra("item_id", item.id)
-                context.startActivity(intent)
-            })
+            items(itemList) { item ->
+                ListItem(item = item, onClick = {
+                    val intent = Intent(context, DetailActivity::class.java)
+                    intent.putExtra("item_id", item.id)
+                    context.startActivity(intent)
+                })
             }
         }
     }
