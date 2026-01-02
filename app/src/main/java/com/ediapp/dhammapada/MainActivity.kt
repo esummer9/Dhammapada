@@ -159,25 +159,9 @@ fun MyKeywordApp() {
                                         onDismissRequest = { menuExpanded = false }
                                     ) {
                                         DropdownMenuItem(
-                                            text = { Text("어바웃") },
-                                            onClick = {
-                                                context.startActivity(Intent(context, AboutActivity::class.java))
-                                                menuExpanded = false
-                                            }
-                                        )
-
-                                        DropdownMenuItem(
                                             text = { Text("도움말") },
                                             onClick = {
                                                 context.startActivity(Intent(context, HelpActivity::class.java))
-                                                menuExpanded = false
-                                            }
-                                        )
-
-                                        DropdownMenuItem(
-                                            text = { Text("오픈소스") },
-                                            onClick = {
-                                                context.startActivity(Intent(context, OpenSourceActivity::class.java))
                                                 menuExpanded = false
                                             }
                                         )

@@ -86,7 +86,7 @@ fun DetailScreen(itemId: Long) {
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("상세보기") },
+                title = { Text("내손안의 법구경") },
                 navigationIcon = {
                     IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(

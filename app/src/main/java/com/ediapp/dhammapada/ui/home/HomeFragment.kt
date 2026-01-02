@@ -161,22 +161,27 @@ fun HomeFragment(
     
     LaunchedEffect(item, isLoading, useTts, tts) {
         setActions {
-            IconButton(
-                onClick = { 
-                    if (useTts && tts != null && item != null) {
-                        tts?.speak(item!!.content, TextToSpeech.QUEUE_FLUSH, null, null)
-                    } else if (useTts) {
-                        Toast.makeText(context, "TTS 엔진을 초기화하고 있습니다.", Toast.LENGTH_SHORT).show()
-                    } else {
-                         Toast.makeText(context, "설정에서 TTS 사용을 활성화해주세요.", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                enabled = useTts && !isLoading && item != null
-            ) {
-                Icon(painterResource(id = R.drawable.say),tint = Color.Unspecified,
-                    modifier = Modifier.width(30.dp), contentDescription = "듣기")
+            if (useTts) {
+                IconButton(
+                    onClick = {
+                        if (useTts && tts != null && item != null) {
+                            tts?.speak(item!!.content, TextToSpeech.QUEUE_FLUSH, null, null)
+                        } else if (useTts) {
+                            Toast.makeText(context, "TTS 엔진을 초기화하고 있습니다.", Toast.LENGTH_SHORT)
+                                .show()
+                        } else {
+                            Toast.makeText(context, "설정에서 TTS 사용을 활성화해주세요.", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    },
+                    enabled = useTts && !isLoading && item != null
+                ) {
+                    Icon(
+                        painterResource(id = R.drawable.say), tint = Color.Unspecified,
+                        modifier = Modifier.width(30.dp), contentDescription = "듣기"
+                    )
+                }
             }
-
             IconButton(onClick = { 
                 coroutineScope.launch {
                     val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
@@ -229,39 +234,43 @@ fun HomeFragment(
             .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = imageResId),
-            contentDescription = "Budda Image",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 350.dp)
-                .padding(16.dp)
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = imageResId),
+                contentDescription = "Budda Image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 350.dp)
+                    .padding(16.dp)
+            )
 
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-        } else if (item != null) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = item!!.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp).semantics { contentDescription = "법구경 제목" }
-                )
-                Text(
-                    text = item!!.content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .semantics { contentDescription = "법구경 본문" }
-                        .clickable {
-                            val intent = Intent(context, DetailActivity::class.java)
-                            intent.putExtra("item_id", item!!.id)
-                            context.startActivity(intent)
-                        }
-                )
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            } else if (item != null) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = item!!.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                            .semantics { contentDescription = "법구경 제목" }
+                    )
+                    Text(
+                        text = item!!.content,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .semantics { contentDescription = "법구경 본문" }
+                            .clickable {
+                                val intent = Intent(context, DetailActivity::class.java)
+                                intent.putExtra("item_id", item!!.id)
+                                context.startActivity(intent)
+                            }
+                    )
+                }
+
+            } else {
+                Text("표시할 구절이 없습니다.", modifier = Modifier.padding(16.dp))
             }
-        } else {
-            Text("표시할 구절이 없습니다.", modifier = Modifier.padding(16.dp))
         }
     }
 }
