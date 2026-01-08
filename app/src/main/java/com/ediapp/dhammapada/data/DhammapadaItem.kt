@@ -5,6 +5,7 @@ data class DhammapadaItem(
     val category: String,
     val title: String,
     val content: String,
+    val myContent: String?,
     val createdAt: Long,
     val regDate: Long,
     val writeDate: Long,

@@ -12,8 +12,8 @@ import java.io.IOException
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "myapp2.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_NAME = "myapp3.db"
+        private const val DATABASE_VERSION = 1
 
         // tb_MEMOS 테이블
         const val TABLE_LISTS = "tb_lists"
@@ -21,6 +21,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val LISTS_COL_CATEGORY = "category"
         const val LISTS_COL_TITLE = "title"
         const val LISTS_COL_CONTENT = "content"
+        const val LISTS_COL_MY_CONTENT = "my_content"
         const val LISTS_COL_TIMESTAMP = "created_at"
         const val LISTS_COL_REG_DATE = "reg_date"
         const val LISTS_COL_WRITE_DATE = "write_date"
@@ -36,6 +37,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     "$LISTS_COL_CATEGORY TEXT," +
                     "$LISTS_COL_TITLE TEXT," +
                     "$LISTS_COL_CONTENT TEXT," +
+                    "$LISTS_COL_MY_CONTENT TEXT," +
                     "$LISTS_COL_TIMESTAMP INTEGER," +
                     "$LISTS_COL_REG_DATE INTEGER," +
                     "$LISTS_COL_WRITE_DATE INTEGER DEFAULT 0," +
@@ -63,6 +65,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             category = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CATEGORY)),
             title = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_TITLE)),
             content = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_CONTENT)),
+            myContent = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_MY_CONTENT)),
             createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_TIMESTAMP)),
             regDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_REG_DATE)),
             writeDate = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_WRITE_DATE)),
@@ -153,10 +156,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         db.execSQL("UPDATE $TABLE_LISTS SET $LISTS_COL_READ_COUNT = $LISTS_COL_READ_COUNT + 1, $LISTS_COL_READ_TIME = ? WHERE $LISTS_COL_ID = ?", arrayOf(System.currentTimeMillis().toString(), id.toString()))
     }
 
-    fun updateWriteDate(id: Long) {
+    fun updateWriteDate(id: Long, myContent: String ="") {
         val db = this.writableDatabase
         val values = ContentValues()
         values.put(LISTS_COL_WRITE_DATE, System.currentTimeMillis())
+        values.put(LISTS_COL_MY_CONTENT, myContent)
         db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ? and $LISTS_COL_WRITE_DATE = 0", arrayOf(id.toString()))
     }
 

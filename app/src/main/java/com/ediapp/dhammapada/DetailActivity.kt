@@ -2,9 +2,13 @@ package com.ediapp.dhammapada
 
 import android.app.Activity
 import android.app.Application
+import android.content.Intent
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ediapp.dhammapada.data.DhammapadaItem
@@ -69,6 +76,9 @@ fun DetailScreen(itemId: Long) {
     var charCount by remember { mutableStateOf(0) }
     var accuracy by remember { mutableStateOf(0.0) }
     var isThresholdMet by remember { mutableStateOf(false) }
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    val focusRequester = remember { FocusRequester() }
+    var isWritingVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(itemId) {
         item = dbHelper.getItemById(itemId)
@@ -77,7 +87,8 @@ fun DetailScreen(itemId: Long) {
     DisposableEffect(Unit) {
         onDispose {
             if (item != null && isThresholdMet) {
-                dbHelper.updateWriteDate(item!!.id) 
+                Log.d("updateWriteDate", userInput)
+                dbHelper.updateWriteDate(item!!.id, userInput)
             }
         }
     }
@@ -105,28 +116,73 @@ fun DetailScreen(itemId: Long) {
                     .padding(innerPadding)
                     .padding(16.dp)
             ) {
+                if (item!!.myContent == null)
+                    userInput = ""
+                else
+                    userInput = item!!.myContent.toString()
+
                 Text(text = item!!.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp))
                 Text(text = item!!.content, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
 
-                OutlinedTextField(
-                    value = userInput,
-                    onValueChange = {
-                        userInput = it
-                        charCount = it.length
-                        accuracy = calculateAccuracy(item!!.content, it)
-                        if (accuracy > 60) {
-                            isThresholdMet = true
-                        }
-                    },
-                    label = { Text("내용을 따라 입력하세요") },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 5
-                )
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // 공유 버튼
+                    Button(onClick = {
+                        val shareText = "\uD83D\uDE4F ${item!!.title}\n\n${item!!.content}"
+                        val sendIntent: Intent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, item!!.title)
+                        context.startActivity(shareIntent)
+                    }) {
+                        Text("공유")
+                    }
 
-                Row(modifier = Modifier.padding(top = 8.dp)) {
-                    Text(text = "글자 수: $charCount")
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = "일치율: ${String.format("%.2f", accuracy)}%")
+                    // 듣기 버튼
+                    Button(onClick = {
+                        tts?.speak(item!!.content, TextToSpeech.QUEUE_FLUSH, null, null)
+                    }) {
+                        Text("듣기")
+                    }
+
+                    // 쓰기 버튼
+                    Button(onClick = {
+                        isWritingVisible = !isWritingVisible
+                    }) {
+                        Text("쓰기")
+                    }
+                }
+
+                if (isWritingVisible) {
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
+                    OutlinedTextField(
+                        value = userInput,
+                        onValueChange = {
+                            userInput = it
+                            charCount = it.length
+                            accuracy = calculateAccuracy(item!!.content, it)
+                            if (accuracy > 60) {
+                                isThresholdMet = true
+                            }
+                        },
+                        label = { Text("내용을 따라 입력하세요") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        minLines = 5
+                    )
+
+                    Row(modifier = Modifier.padding(top = 8.dp)) {
+                        Text(text = "글자 수: $charCount")
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = "일치율: ${String.format("%.2f", accuracy)}%")
+                    }
                 }
             }
         }
