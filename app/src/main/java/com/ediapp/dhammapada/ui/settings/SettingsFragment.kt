@@ -47,7 +47,7 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("TTS 사용")
+            Text("TTS(읽어주기) 사용")
             Switch(
                 checked = useTts,
                 onCheckedChange = {

@@ -2,6 +2,7 @@ package com.ediapp.dhammapada
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -41,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ediapp.dhammapada.data.DhammapadaItem
 import com.ediapp.dhammapada.ui.theme.MyKeywordTheme
+import java.util.Locale
 
 class App : Application() {
     companion object {
@@ -80,20 +82,39 @@ fun DetailScreen(itemId: Long) {
     val focusRequester = remember { FocusRequester() }
     var isWritingVisible by remember { mutableStateOf(false) }
 
+    val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
+    val useTts = sharedPref.getBoolean("use_tts", false)
+
     LaunchedEffect(itemId) {
         item = dbHelper.getItemById(itemId)
-        if (item!!.myContent == null)
-            userInput = ""
-        else
-            userInput = item!!.myContent.toString()
+        userInput = item?.myContent ?: ""
+    }
+
+    LaunchedEffect(item, userInput) {
+        item?.let {
+            accuracy = calculateAccuracy(it.content, userInput)
+            charCount = userInput.length
+            if (accuracy >= 10) {
+                isThresholdMet = true
+            }
+        }
     }
 
     DisposableEffect(Unit) {
+        if (useTts) {
+            tts = TextToSpeech(context) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    tts?.language = Locale.KOREAN
+                }
+            }
+        }
         onDispose {
             if (item != null && isThresholdMet) {
                 Log.d("updateWriteDate", userInput)
                 dbHelper.updateWriteDate(item!!.id, userInput, accuracy)
             }
+            tts?.stop()
+            tts?.shutdown()
         }
     }
 
@@ -142,19 +163,21 @@ fun DetailScreen(itemId: Long) {
                         Text("공유")
                     }
 
-                    // 듣기 버튼
-                    Button(onClick = {
-                        tts?.speak(item!!.content, TextToSpeech.QUEUE_FLUSH, null, null)
-                    }) {
-                        Text("듣기")
+                    if (useTts) {
+                        // 듣기 버튼
+                        Button(onClick = {
+                            tts?.speak(item!!.content, TextToSpeech.QUEUE_FLUSH, null, null)
+                        }) {
+                            Text("듣기")
+                        }
                     }
 
                     // 쓰기 버튼
-                    Button(onClick = {
-                        isWritingVisible = !isWritingVisible
-                    }) {
-                        Text("쓰기")
-                    }
+                        Button(onClick = {
+                            isWritingVisible = !isWritingVisible
+                        }) {
+                            Text("쓰기")
+                        }
                 }
 
                 if (isWritingVisible) {
@@ -163,14 +186,7 @@ fun DetailScreen(itemId: Long) {
                     }
                     OutlinedTextField(
                         value = userInput,
-                        onValueChange = {
-                            userInput = it
-                            charCount = it.length
-                            accuracy = calculateAccuracy(item!!.content, it)
-                            if (accuracy >= 0) {
-                                isThresholdMet = true
-                            }
-                        },
+                        onValueChange = { userInput = it },
                         label = { Text("내용을 따라 입력하세요") },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -194,8 +210,8 @@ fun calculateAccuracy(original: String, typed: String): Double {
         return 0.0
     }
 
-    val cleanedOriginal = original.replace(Regex("[\\s\\p{Punct}]"), "")
-    val cleanedTyped = typed.replace(Regex("[\\s\\p{Punct}]"), "")
+    val cleanedOriginal = original.replace(Regex("[\\s\\p{Punct}]"), "").lowercase()
+    val cleanedTyped = typed.replace(Regex("[\\s\\p{Punct}]"), "").lowercase()
 
     if (cleanedOriginal.isEmpty() || cleanedTyped.isEmpty()) {
         return 0.0
