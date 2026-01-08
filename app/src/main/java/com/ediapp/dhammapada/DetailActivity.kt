@@ -92,7 +92,7 @@ fun DetailScreen(itemId: Long) {
         onDispose {
             if (item != null && isThresholdMet) {
                 Log.d("updateWriteDate", userInput)
-                dbHelper.updateWriteDate(item!!.id, userInput)
+                dbHelper.updateWriteDate(item!!.id, userInput, accuracy)
             }
         }
     }

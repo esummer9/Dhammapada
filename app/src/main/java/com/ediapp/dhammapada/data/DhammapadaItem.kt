@@ -12,5 +12,6 @@ data class DhammapadaItem(
     val url: String,
     val readCount: Int,
     val readTime: Long,
-    val status: String
+    val status: String,
+    val accuracy: Double = 0.0
 )

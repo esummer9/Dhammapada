@@ -12,8 +12,8 @@ import java.io.IOException
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "myapp3.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_NAME = "myapp4.db"
+        private const val DATABASE_VERSION = 1 // Incremented version
 
         // tb_MEMOS 테이블
         const val TABLE_LISTS = "tb_lists"
@@ -26,6 +26,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val LISTS_COL_REG_DATE = "reg_date"
         const val LISTS_COL_WRITE_DATE = "write_date"
         const val LISTS_COL_URL = "url"
+        const val LISTS_COL_ACCURACY = "accuracy"
 
         const val LISTS_COL_READ_COUNT = "read_count"
         const val LISTS_COL_READ_TIME = "read_time"
@@ -44,7 +45,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     "$LISTS_COL_URL TEXT," +
                     "$LISTS_COL_READ_COUNT INT," +
                     "$LISTS_COL_READ_TIME INTEGER," +
-                    "$LISTS_COL_STATUS TEXT " +
+                    "$LISTS_COL_STATUS TEXT, " +
+                    "$LISTS_COL_ACCURACY REAL DEFAULT 0.0" + // Added accuracy
                     ")"
 
     }
@@ -55,7 +57,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
-            db.execSQL("ALTER TABLE $TABLE_LISTS ADD COLUMN $LISTS_COL_WRITE_DATE INTEGER DEFAULT 0")
+
         }
     }
 
@@ -72,7 +74,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             url = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_URL)),
             readCount = cursor.getInt(cursor.getColumnIndexOrThrow(LISTS_COL_READ_COUNT)),
             readTime = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_READ_TIME)),
-            status = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_STATUS))
+            status = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_STATUS)),
+            accuracy = cursor.getDouble(cursor.getColumnIndexOrThrow(LISTS_COL_ACCURACY))
         )
     }
 
@@ -96,6 +99,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     put(LISTS_COL_READ_COUNT, 0)
                     put(LISTS_COL_READ_TIME, 0)
                     put(LISTS_COL_STATUS, "unread")
+                    put(LISTS_COL_ACCURACY, 0.0)
                 }
                 db.insert(TABLE_LISTS, null, values)
             }
@@ -156,16 +160,13 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         db.execSQL("UPDATE $TABLE_LISTS SET $LISTS_COL_READ_COUNT = $LISTS_COL_READ_COUNT + 1, $LISTS_COL_READ_TIME = ? WHERE $LISTS_COL_ID = ?", arrayOf(System.currentTimeMillis().toString(), id.toString()))
     }
 
-    fun updateWriteDate(id: Long, myContent: String ="") {
-        if (!myContent.equals("")) {
-            val db = this.writableDatabase
-
-            val values = ContentValues()
-            values.put(LISTS_COL_WRITE_DATE, System.currentTimeMillis())
-            values.put(LISTS_COL_MY_CONTENT, myContent)
-
-            db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ?", arrayOf(id.toString()))
-        }
+    fun updateWriteDate(id: Long, myContent: String, accuracy: Double) {
+        val db = this.writableDatabase
+        val values = ContentValues()
+        values.put(LISTS_COL_WRITE_DATE, System.currentTimeMillis())
+        values.put(LISTS_COL_MY_CONTENT, myContent)
+        values.put(LISTS_COL_ACCURACY, accuracy)
+        db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ? and $LISTS_COL_WRITE_DATE = 0", arrayOf(id.toString()))
     }
 
     fun getAllLists(): List<DhammapadaItem> {
