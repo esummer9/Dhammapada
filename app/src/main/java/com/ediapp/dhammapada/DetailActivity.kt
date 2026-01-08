@@ -82,6 +82,10 @@ fun DetailScreen(itemId: Long) {
 
     LaunchedEffect(itemId) {
         item = dbHelper.getItemById(itemId)
+        if (item!!.myContent == null)
+            userInput = ""
+        else
+            userInput = item!!.myContent.toString()
     }
 
     DisposableEffect(Unit) {
@@ -116,10 +120,6 @@ fun DetailScreen(itemId: Long) {
                     .padding(innerPadding)
                     .padding(16.dp)
             ) {
-                if (item!!.myContent == null)
-                    userInput = ""
-                else
-                    userInput = item!!.myContent.toString()
 
                 Text(text = item!!.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp))
                 Text(text = item!!.content, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
@@ -167,7 +167,7 @@ fun DetailScreen(itemId: Long) {
                             userInput = it
                             charCount = it.length
                             accuracy = calculateAccuracy(item!!.content, it)
-                            if (accuracy > 60) {
+                            if (accuracy >= 0) {
                                 isThresholdMet = true
                             }
                         },

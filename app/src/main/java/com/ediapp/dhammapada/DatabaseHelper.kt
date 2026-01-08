@@ -157,11 +157,15 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     fun updateWriteDate(id: Long, myContent: String ="") {
-        val db = this.writableDatabase
-        val values = ContentValues()
-        values.put(LISTS_COL_WRITE_DATE, System.currentTimeMillis())
-        values.put(LISTS_COL_MY_CONTENT, myContent)
-        db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ? and $LISTS_COL_WRITE_DATE = 0", arrayOf(id.toString()))
+        if (!myContent.equals("")) {
+            val db = this.writableDatabase
+
+            val values = ContentValues()
+            values.put(LISTS_COL_WRITE_DATE, System.currentTimeMillis())
+            values.put(LISTS_COL_MY_CONTENT, myContent)
+
+            db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ?", arrayOf(id.toString()))
+        }
     }
 
     fun getAllLists(): List<DhammapadaItem> {
