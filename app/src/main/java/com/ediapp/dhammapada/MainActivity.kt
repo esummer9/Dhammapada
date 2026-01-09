@@ -218,7 +218,7 @@ enum class AppDestinations(
     val label: String,
     val icon: Any,
 ) {
-    HOME("Home", R.drawable.logo),
+    HOME("Home", R.drawable.home),
     MEMO("Lists", R.drawable.memo),
     KEYWORD("Settings", R.drawable.settings),
 }

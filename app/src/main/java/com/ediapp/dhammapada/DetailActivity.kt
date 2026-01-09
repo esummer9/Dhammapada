@@ -9,7 +9,6 @@ import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,7 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.ediapp.dhammapada.data.DhammapadaItem
 import com.ediapp.dhammapada.ui.theme.MyKeywordTheme
@@ -84,17 +89,19 @@ fun DetailScreen(itemId: Long) {
 
     val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
     val useTts = sharedPref.getBoolean("use_tts", false)
+    val useWriting = sharedPref.getBoolean("use_writing", false)
 
     LaunchedEffect(itemId) {
         item = dbHelper.getItemById(itemId)
         userInput = item?.myContent ?: ""
+        isWritingVisible = useWriting
     }
 
     LaunchedEffect(item, userInput) {
         item?.let {
             accuracy = calculateAccuracy(it.content, userInput)
             charCount = userInput.length
-            if (accuracy >= 10) {
+            if (accuracy >= 60) {
                 isThresholdMet = true
             }
         }
@@ -130,6 +137,39 @@ fun DetailScreen(itemId: Long) {
                             contentDescription = "Back"
                         )
                     }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val shareText = "\uD83D\uDE4F ${item?.title}\n\n${item?.content}"
+                        val sendIntent: Intent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, item?.title)
+                        context.startActivity(shareIntent)
+                    }) {
+                        Icon(Icons.Filled.Share, contentDescription = "공유")
+                    }
+
+                    if (useTts) {
+                        IconButton(onClick = {
+                            item?.let {
+                                tts?.speak(
+                                    it.content,
+                                    TextToSpeech.QUEUE_FLUSH,
+                                    null,
+                                    null
+                                )
+                            }
+                        }) {
+                            Icon(
+                                painterResource(id = R.drawable.say),
+                                tint = Color.Unspecified,
+                                contentDescription = "듣기"
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -141,48 +181,49 @@ fun DetailScreen(itemId: Long) {
                     .padding(innerPadding)
                     .padding(16.dp)
             ) {
-
                 Text(text = item!!.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp))
-                Text(text = item!!.content, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        val originalText = item!!.content
+                        val typedText = userInput
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // 공유 버튼
-                    Button(onClick = {
-                        val shareText = "\uD83D\uDE4F ${item!!.title}\n\n${item!!.content}"
-                        val sendIntent: Intent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, shareText)
-                            type = "text/plain"
-                        }
-                        val shareIntent = Intent.createChooser(sendIntent, item!!.title)
-                        context.startActivity(shareIntent)
-                    }) {
-                        Text("공유")
-                    }
+                        val cleanedOriginal = originalText.replace(Regex("[\\s\\p{Punct}]"), "").lowercase()
+                        val cleanedTyped = typedText.replace(Regex("[\\s\\p{Punct}]"), "").lowercase()
 
-                    if (useTts) {
-                        // 듣기 버튼
-                        Button(onClick = {
-                            tts?.speak(item!!.content, TextToSpeech.QUEUE_FLUSH, null, null)
-                        }) {
-                            Text("듣기")
+                        var commonPrefixLength = 0
+                        while (commonPrefixLength < cleanedOriginal.length &&
+                            commonPrefixLength < cleanedTyped.length &&
+                            cleanedOriginal[commonPrefixLength] == cleanedTyped[commonPrefixLength]) {
+                            commonPrefixLength++
                         }
-                    }
 
-                    // 쓰기 버튼
-                        Button(onClick = {
-                            isWritingVisible = !isWritingVisible
-                        }) {
-                            Text("쓰기")
+                        var splitIndex = 0
+                        if (commonPrefixLength > 0) {
+                            var nonPunctCount = 0
+                            for (j in originalText.indices) {
+                                if (!originalText[j].toString().matches(Regex("[\\s\\p{Punct}]"))) {
+                                    nonPunctCount++
+                                }
+                                if (nonPunctCount == commonPrefixLength) {
+                                    splitIndex = j + 1
+                                    break
+                                }
+                            }
                         }
-                }
+
+                        append(originalText.substring(0, splitIndex))
+
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(originalText.substring(splitIndex))
+                        }
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
                 if (isWritingVisible) {
-                    LaunchedEffect(Unit) {
-                        focusRequester.requestFocus()
+                    LaunchedEffect(isWritingVisible) {
+                        if(isWritingVisible) focusRequester.requestFocus()
                     }
                     OutlinedTextField(
                         value = userInput,

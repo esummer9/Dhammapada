@@ -28,6 +28,7 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
     var useTts by remember { mutableStateOf(sharedPref.getBoolean("use_tts", false)) }
+    var useWriting by remember { mutableStateOf(sharedPref.getBoolean("use_writing", true)) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
     DisposableEffect(Unit) {
@@ -42,6 +43,24 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("법구경 사경")
+            Switch(
+                checked = useWriting,
+                onCheckedChange = {
+                    useWriting = it
+                    with(sharedPref.edit()) {
+                        putBoolean("use_writing", it)
+                        apply()
+                    }
+                }
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

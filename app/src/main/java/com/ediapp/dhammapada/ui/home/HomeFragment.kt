@@ -88,6 +88,7 @@ fun HomeFragment(
             R.drawable.buddda_img_0538,
             R.drawable.budda_img_20250101_121911767,
             R.drawable.budda_bulguksa_1604599_1280,
+            R.drawable.budda_5195024_1280,
         )
     }
     var imageResId by remember { mutableStateOf(buddaImageIds.random()) }
