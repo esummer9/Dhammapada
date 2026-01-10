@@ -46,6 +46,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.ediapp.dhammapada.DatabaseHelper
@@ -60,8 +61,8 @@ import kotlin.math.abs
 
 @Composable
 fun HomeFragment(
-    modifier: Modifier = Modifier, 
-    refreshTrigger: Int, 
+    modifier: Modifier = Modifier,
+    refreshTrigger: Int,
     setActions: (@Composable RowScope.() -> Unit) -> Unit
 ) {
     val context = LocalContext.current
@@ -70,6 +71,7 @@ fun HomeFragment(
     var item by remember { mutableStateOf<DhammapadaItem?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val useTts = sharedPref.getBoolean("use_tts", false)
+    val fontSizeLarge = sharedPref.getBoolean("font_size_large", false)
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -138,7 +140,7 @@ fun HomeFragment(
             isLoading = true
             val readIndex = sharedPref.getInt("read_index", 0)
             var nextItem = dbHelper.getNextItem(readIndex)
-            if (nextItem == null) { 
+            if (nextItem == null) {
                 nextItem = dbHelper.getNextItem(0)
             }
             loadItem(nextItem)
@@ -159,9 +161,20 @@ fun HomeFragment(
             isLoading = false
         }
     }
-    
+
     LaunchedEffect(item, isLoading, useTts, tts) {
         setActions {
+            if (item != null) {
+                IconButton(onClick = {
+                    val newBookmarkStatus = !(item!!.bookmark == 1)
+                    dbHelper.updateBookmarkStatus(item!!.id, newBookmarkStatus)
+                    item = item!!.copy(bookmark = if (newBookmarkStatus) 1 else 0)
+                }) {
+                    Icon(painterResource(id = if (item!!.bookmark == 1) R.drawable.bookmark else R.drawable.bookmark_border), tint = Color.Unspecified,
+                        contentDescription = "Bookmark",
+                    )
+                }
+            }
             if (useTts) {
                 IconButton(
                     onClick = {
@@ -183,7 +196,7 @@ fun HomeFragment(
                     )
                 }
             }
-            IconButton(onClick = { 
+            IconButton(onClick = {
                 coroutineScope.launch {
                     val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
                     val canvas = android.graphics.Canvas(bitmap)
@@ -192,7 +205,7 @@ fun HomeFragment(
                 }
             }, enabled = !isLoading && item != null) {
                 Icon(painterResource(id = R.drawable.picture),tint = Color.Unspecified,
-                     modifier = Modifier.width(30.dp), contentDescription = "저장"
+                    modifier = Modifier.width(30.dp), contentDescription = "저장"
                 )
             }
         }
@@ -211,12 +224,15 @@ fun HomeFragment(
     val scrollState = rememberScrollState()
     var dragDistance by remember { mutableStateOf(0f) }
 
+    val titleTextStyle = if (fontSizeLarge) MaterialTheme.typography.titleLarge.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize * 1.3f) else MaterialTheme.typography.titleLarge
+    val contentTextStyle = if (fontSizeLarge) MaterialTheme.typography.bodyLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize * 1.3f) else MaterialTheme.typography.bodyLarge
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectDragGestures(
-                    onDrag = { change, dragAmount -> 
+                    onDrag = { change, dragAmount ->
                         change.consume()
                         dragDistance += dragAmount.x
                     },
@@ -252,13 +268,13 @@ fun HomeFragment(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = item!!.title,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = titleTextStyle,
                         modifier = Modifier.padding(bottom = 8.dp)
                             .semantics { contentDescription = "법구경 제목" }
                     )
                     Text(
                         text = item!!.content,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = contentTextStyle,
                         modifier = Modifier
                             .semantics { contentDescription = "법구경 본문" }
                             .clickable {
@@ -292,7 +308,7 @@ private fun saveBitmapToGallery(context: Context, bitmap: Bitmap, displayName: S
     try {
         uri?.let {
             val stream: OutputStream? = resolver.openOutputStream(it)
-            stream?.use { 
+            stream?.use {
                 if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) {
                     throw IOException("Failed to save bitmap.")
                 }

@@ -29,6 +29,7 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
     val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
     var useTts by remember { mutableStateOf(sharedPref.getBoolean("use_tts", false)) }
     var useWriting by remember { mutableStateOf(sharedPref.getBoolean("use_writing", true)) }
+    var fontSizeLarge by remember { mutableStateOf(sharedPref.getBoolean("font_size_large", false)) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
     DisposableEffect(Unit) {
@@ -41,7 +42,8 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -55,6 +57,24 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
                     useWriting = it
                     with(sharedPref.edit()) {
                         putBoolean("use_writing", it)
+                        apply()
+                    }
+                }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("글자 크게")
+            Switch(
+                checked = fontSizeLarge,
+                onCheckedChange = {
+                    fontSizeLarge = it
+                    with(sharedPref.edit()) {
+                        putBoolean("font_size_large", it)
                         apply()
                     }
                 }

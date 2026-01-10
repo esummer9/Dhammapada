@@ -12,8 +12,8 @@ import java.io.IOException
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "myapp4.db"
-        private const val DATABASE_VERSION = 1 // Incremented version
+        private const val DATABASE_NAME = "myapp5.db"
+        private const val DATABASE_VERSION = 1 // Incremented version for schema change
 
         // tb_MEMOS 테이블
         const val TABLE_LISTS = "tb_lists"
@@ -30,6 +30,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         const val LISTS_COL_READ_COUNT = "read_count"
         const val LISTS_COL_READ_TIME = "read_time"
+        const val LISTS_COL_BOOKMARK = "bookmark"
         const val LISTS_COL_STATUS = "status"
 
         private const val CREATE_TABLE_LISTS =
@@ -45,8 +46,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     "$LISTS_COL_URL TEXT," +
                     "$LISTS_COL_READ_COUNT INT," +
                     "$LISTS_COL_READ_TIME INTEGER," +
+                    "$LISTS_COL_BOOKMARK INTEGER DEFAULT 0," +
                     "$LISTS_COL_STATUS TEXT, " +
-                    "$LISTS_COL_ACCURACY REAL DEFAULT 0.0" + // Added accuracy
+                    "$LISTS_COL_ACCURACY REAL DEFAULT 0.0" +
                     ")"
 
     }
@@ -75,7 +77,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             readCount = cursor.getInt(cursor.getColumnIndexOrThrow(LISTS_COL_READ_COUNT)),
             readTime = cursor.getLong(cursor.getColumnIndexOrThrow(LISTS_COL_READ_TIME)),
             status = cursor.getString(cursor.getColumnIndexOrThrow(LISTS_COL_STATUS)),
-            accuracy = cursor.getDouble(cursor.getColumnIndexOrThrow(LISTS_COL_ACCURACY))
+            accuracy = cursor.getDouble(cursor.getColumnIndexOrThrow(LISTS_COL_ACCURACY)),
+            bookmark = cursor.getInt(cursor.getColumnIndexOrThrow(LISTS_COL_BOOKMARK))
         )
     }
 
@@ -98,6 +101,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     put(LISTS_COL_WRITE_DATE, 0)
                     put(LISTS_COL_READ_COUNT, 0)
                     put(LISTS_COL_READ_TIME, 0)
+                    put(LISTS_COL_BOOKMARK, 0)
                     put(LISTS_COL_STATUS, "unread")
                     put(LISTS_COL_ACCURACY, 0.0)
                 }
@@ -110,6 +114,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             db.endTransaction()
         }
     }
+    fun updateBookmarkStatus(id: Long, isBookmarked: Boolean) {
+        val db = this.writableDatabase
+        val values = ContentValues()
+        values.put(LISTS_COL_BOOKMARK, if (isBookmarked) 1 else 0)
+        db.update(TABLE_LISTS, values, "$LISTS_COL_ID = ?", arrayOf(id.toString()))
+    }
 
     fun getNextItem(readIndex: Int): DhammapadaItem? {
         val db = this.readableDatabase
@@ -121,7 +131,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         cursor.close()
         return item
     }
-    
+
     fun getPreviousItem(id: Long): DhammapadaItem? {
         val db = this.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM $TABLE_LISTS WHERE $LISTS_COL_ID < ? ORDER BY $LISTS_COL_ID DESC LIMIT 1", arrayOf(id.toString()))

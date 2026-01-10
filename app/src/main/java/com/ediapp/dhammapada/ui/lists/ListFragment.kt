@@ -1,5 +1,6 @@
 package com.ediapp.dhammapada.ui.lists
 
+import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
@@ -37,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.ediapp.dhammapada.DatabaseHelper
@@ -50,6 +52,8 @@ import java.util.Locale
 fun ListFragment(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val dbHelper = remember { DatabaseHelper(context) }
+    val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
+    val fontSizeLarge = sharedPref.getBoolean("font_size_large", false)
     var itemList by remember { mutableStateOf(emptyList<DhammapadaItem>()) }
     var searchQuery by remember { mutableStateOf("") }
     var filterOption by remember { mutableStateOf("사경무") }
@@ -80,6 +84,7 @@ fun ListFragment(modifier: Modifier = Modifier) {
         itemList = when (filterOption) {
             "사경" -> allItems.filter { it.writeDate > 0 }
             "사경무" -> allItems.filter { it.writeDate <= 0 }
+            "북마크" -> allItems.filter { it.bookmark == 1 }
             else -> allItems // "전체"
         }
     }
@@ -94,12 +99,12 @@ fun ListFragment(modifier: Modifier = Modifier) {
                 .padding(16.dp)
         )
 
-        val radioOptions = listOf("사경무", "사경", "전체")
+        val radioOptions = listOf("사경무", "사경", "북마크", "전체")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             radioOptions.forEach { option ->
@@ -128,7 +133,7 @@ fun ListFragment(modifier: Modifier = Modifier) {
 
         LazyColumn {
             items(itemList) { item ->
-                ListItem(item = item, onClick = {
+                ListItem(item = item, fontSizeLarge = fontSizeLarge, onClick = {
                     val intent = Intent(context, DetailActivity::class.java)
                     intent.putExtra("item_id", item.id)
                     context.startActivity(intent)
@@ -139,7 +144,10 @@ fun ListFragment(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ListItem(item: DhammapadaItem, onClick: () -> Unit) {
+fun ListItem(item: DhammapadaItem, fontSizeLarge: Boolean, onClick: () -> Unit) {
+    val titleTextStyle = if (fontSizeLarge) MaterialTheme.typography.titleMedium.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize * 1.3f) else MaterialTheme.typography.titleMedium
+    val contentTextStyle = if (fontSizeLarge) MaterialTheme.typography.bodyMedium.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize * 1.3f) else MaterialTheme.typography.bodyMedium
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -149,11 +157,11 @@ fun ListItem(item: DhammapadaItem, onClick: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium
+                style = titleTextStyle
             )
             Text(
                 text = item.content,
-                style = MaterialTheme.typography.bodyMedium,
+                style = contentTextStyle,
                 modifier = Modifier.padding(top = 8.dp)
             )
             Row(modifier = Modifier.padding(top = 8.dp)) {

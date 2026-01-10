@@ -13,5 +13,6 @@ data class DhammapadaItem(
     val readCount: Int,
     val readTime: Long,
     val status: String,
-    val accuracy: Double = 0.0
+    val accuracy: Double = 0.0,
+    val bookmark: Int = 0
 )

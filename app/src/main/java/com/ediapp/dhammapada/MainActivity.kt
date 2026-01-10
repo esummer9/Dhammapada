@@ -170,11 +170,6 @@ fun MyKeywordApp() {
                             },
                             actions = {
                                 if (currentDestination == AppDestinations.HOME) {
-                                    IconButton(onClick = { refreshHomeTrigger++ }) {
-                                        Icon(painterResource(id = R.drawable.arrowhead),
-                                            modifier = Modifier.width(30.dp),
-                                            contentDescription = "Next", tint = Color.Unspecified)
-                                    }
                                     homeFragmentActions?.let { it() }
                                 }
                             }
