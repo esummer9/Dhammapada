@@ -90,7 +90,7 @@ fun DetailScreen(itemId: Long) {
 
         val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
             val useTts = sharedPref.getBoolean("use_tts", false)
-            val useWriting = sharedPref.getBoolean("use_writing", false)
+            val useWriting = sharedPref.getBoolean("use_writing", true)
             val fontSizeLarge = sharedPref.getBoolean("font_size_large", false)
 
             LaunchedEffect(itemId) {
