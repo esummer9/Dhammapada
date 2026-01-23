@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.ediapp.dhammapada.NotificationWorker
 import java.util.Locale
 
 @Composable
@@ -113,5 +115,9 @@ fun SettingsFragment(modifier: Modifier = Modifier) {
                 }
             )
         }
+
+//        Button(onClick = { NotificationWorker.scheduleImmediateNotification(context) }) {
+//            Text("즉시 알림 테스트")
+//        }
     }
 }

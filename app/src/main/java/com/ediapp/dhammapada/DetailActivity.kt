@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -50,17 +51,6 @@ import com.ediapp.dhammapada.data.DhammapadaItem
 import com.ediapp.dhammapada.ui.theme.MyKeywordTheme
 import java.util.Locale
 
-class App : Application() {
-    companion object {
-        lateinit var instance: App
-            private set
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        instance = this
-    }
-}
 class DetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,6 +78,8 @@ fun DetailScreen(itemId: Long) {
         val focusRequester = remember { FocusRequester() }
         var isWritingVisible by remember { mutableStateOf(false) }
 
+        var isBookmarked by remember { mutableStateOf(false) }
+
         val sharedPref = remember { context.getSharedPreferences("DhammapadaPrefs", Context.MODE_PRIVATE) }
             val useTts = sharedPref.getBoolean("use_tts", false)
             val useWriting = sharedPref.getBoolean("use_writing", true)
@@ -95,7 +87,10 @@ fun DetailScreen(itemId: Long) {
 
             LaunchedEffect(itemId) {
                 item = dbHelper.getItemById(itemId)
-                userInput = item?.myContent ?: ""
+                item?.let {
+                    userInput = it.myContent ?: ""
+                    isBookmarked = it.bookmark == 1
+                }
                 isWritingVisible = useWriting
             }
 
@@ -144,6 +139,17 @@ fun DetailScreen(itemId: Long) {
                                 }
                             },
                             actions = {
+                                IconButton(onClick = {
+                                    isBookmarked = !isBookmarked
+                                    dbHelper.updateBookmarkStatus(itemId, isBookmarked)
+                                }) {
+                                    Icon(
+                                        painter = painterResource(if (isBookmarked) R.drawable.bookmark else R.drawable.bookmark_border),
+                                        contentDescription = "북마크",
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(25.dp)
+                                    )
+                                }
                                 IconButton(onClick = {
                                     val shareText = "\uD83D\uDE4F ${item?.title}\n${item?.content}"
                                     val sendIntent: Intent = Intent().apply {

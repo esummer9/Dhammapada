@@ -14,8 +14,8 @@ android {
         applicationId = "com.ediapp.dhammapada"
         minSdk = 27
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.fragment.ktx)
     implementation("com.google.android.gms:play-services-ads:23.0.0")
     implementation("dev.shreyaspatil:capturable:1.0.3")
     testImplementation(libs.junit)
